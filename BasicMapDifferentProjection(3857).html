@@ -1,0 +1,137 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
+        <title>38fitty7</title>
+        <link rel="stylesheet" type="text/css" href="http://js.arcgis.com/3.8/js/esri/css/esri.css">
+        <style type="text/css">
+            html, body, #map {
+                padding: 0;
+                margin: 0;
+                height: 100%;
+            }
+        </style>
+        <script type="text/javascript" src="//js.arcgis.com/3.8/">
+        </script>
+        <script type="text/javascript">
+            
+            function ShowLocation(graphic){
+                //app.map.graphics.add(graphic);
+                app.query.setDefinitionExpression("PAR_ID = 4037381");
+                app.map.centerAndZoom(app.point, 15);
+                //app.map.addLayer(edit_dyn_layer);
+            };
+            
+            function switchBasemaps(basemap){
+                //map.removeAllLayers()
+                //map.addLayer(basemap);
+            }
+            
+            function requestSucceeded(response, io){
+                alert('success');
+            }
+            
+            function requestFailed(error, io){
+                alert('fail');
+            }
+        </script>
+        <script type="text/javascript">
+            var app = {};
+    require([
+      'esri/map', 'esri/geometry/Point', 'esri/SpatialReference','esri/layers/WMSLayer', 'esri/layers/WMSLayerInfo', 'esri/geometry/Extent',
+      'dojo/_base/array', 'dojo/dom', 'dojo/dom-construct', 'dojo/parser', 
+      'dijit/layout/BorderContainer', 'dijit/layout/ContentPane', 'dojo/domReady!'
+    ], 
+    function(Map, Point, SpatialReference, WMSLayer, WMSLayerInfo, Extent, array, dom, domConst, parser) {
+        parser.parse();
+
+        app.spatialReference3857 = new SpatialReference({wkid: 3857});
+        app.myHouse3857 = new Point(  19460786.706068996, -5045166.324707857,app.spatialReference3857);
+
+        app.kansas = new Point( -10818142.804804636,  4381931.8900931645,app.spatialReference3857);
+
+
+
+        app.map = new Map('map', {
+          basemap: 'streets',
+          spatialReference: app.spatialReference3857,
+          center: app.myHouse3857,
+          zoom: 4
+        });
+
+        var layer1 = new WMSLayerInfo({
+          name: '1',
+          title: 'Rivers'
+        });
+        var layer2 = new WMSLayerInfo({
+          name: '2',
+          title: 'Cities'
+        });
+        var resourceInfo = {
+          extent: new Extent(-126.40869140625, 31.025390625, -109.66552734375, 41.5283203125, {
+            wkid: 4326
+          }),
+          layerInfos: [layer1, layer2]
+        };
+        var wmsLayer = new WMSLayer('http://sampleserver1.arcgisonline.com/ArcGIS/services/Specialty/ESRI_StatesCitiesRivers_USA/MapServer/WMSServer', {
+          resourceInfo: resourceInfo,
+          visibleLayers: ['1', '2']
+        });
+        app.map.addLayers([wmsLayer]);
+
+        var layerLocalGovernmentAreas = new WMSLayerInfo({
+          name: 'LocalGovernmentAreas',
+          title: 'LocalGovernmentAreas'
+        });
+        var layerLGANames = new WMSLayerInfo({
+          name: 'LGANames',
+          title: 'LGANames'
+        });
+        var resourceInfoOZLGA = {
+          extent: new Extent(110.885233299472, -45.4704262847601, 155.67460766052, -7.41225929561481, {
+            wkid: 4326
+          }),
+          layerInfos: [layerLocalGovernmentAreas, layerLGANames]
+        };
+
+        var wmsOZLGA = new WMSLayer('http://www.ga.gov.au/gis/services/hazards/LocalGovernmentAreas/MapServer/WMSServer',{
+          resourceInfo: resourceInfoOZLGA,
+          visibleLayers: ['LocalGovernmentAreas', 'LGANames']
+        });
+
+        app.map.addLayers([wmsOZLGA]);
+
+        var details = dom.byId('details');
+        domConst.place('<b>Layers</b>:', details);
+        var ul = domConst.create('ul', null, details);
+        array.forEach(wmsLayer.layerInfos, function(layerInfo) {
+          domConst.create('li', {innerHTML: layerInfo.title}, ul);
+        });
+        domConst.place('<b>WMS Version</b>:' + wmsLayer.version + '<br />', details);
+    });
+    </script>
+
+  </head> 
+  
+  <body class="claro"> 
+    <div id="content" 
+         data-dojo-type="dijit.layout.BorderContainer" 
+         data-dojo-props="design:'headline', gutters:true" 
+         style="width: 100%; height: 100%; margin: 0;"> 
+
+      <div id="details" 
+           data-dojo-type="dijit.layout.ContentPane" 
+           data-dojo-props="region:'left', splitter:true" 
+           style="overflow:auto; width:200px;" > 
+      </div> 
+
+      <div id="map" 
+           data-dojo-type="dijit.layout.ContentPane" 
+           data-dojo-props="region:'center'" 
+           style="overflow:hidden;"> 
+      </div> 
+
+    </div> 
+  </body> 
+</html>
