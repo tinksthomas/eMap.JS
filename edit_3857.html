@@ -1,0 +1,191 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
+        <title>Edit</title>
+        <link rel="stylesheet" type="text/css" href="http://js.arcgis.com/3.9/js/esri/css/esri.css">
+        <style type="text/css">
+            html, body, #map {
+                padding: 0;
+                margin: 0;
+                height: 100%;
+            }
+        </style>
+        <script type="text/javascript" src="//js.arcgis.com/3.9/">
+        </script>
+        <script type="text/javascript">
+            
+            function ShowLocation(graphic){
+                //app.map.graphics.add(graphic);
+                app.map.centerAndZoom(app.myHouse3857, 15);
+                //app.map.addLayer(edit_dyn_layer);
+            };
+            
+            function switchBasemaps(basemap){
+                //map.removeAllLayers()
+                //map.addLayer(basemap);
+            }
+        </script>
+        <script type="text/javascript">
+            var app = {};
+            require(["esri/map", "esri/layers/ArcGISTiledMapServiceLayer", "esri/layers/FeatureLayer", "esri/layers/ArcGISDynamicMapServiceLayer", "esri/layers/ImageParameters", "esri/geometry/Point", "esri/SpatialReference", "esri/symbols/SimpleMarkerSymbol", "esri/InfoTemplate", "esri/symbols/SimpleLineSymbol", "esri/symbols/SimpleFillSymbol", "esri/dijit/PopupTemplate", "esri/renderers/UniqueValueRenderer", "esri/graphic", "dojo/parser", "dojo/_base/Color"], function(Map, Tiled, FeatureLayer, ArcGISDynamicMapServiceLayer, ImageParameters, Point, SpatialReference, SimpleMarkerSymbol, InfoTemplate, SimpleLineSymbol, SimpleFillSymbol, PopupTemplate, UniqueValueRenderer, Graphic, parser, Color){
+                parser.parse();
+                //app.map = new Map("map", {});
+                
+        app.spatialReference3857 = new SpatialReference({wkid: 3857});
+        app.myHouse3857 = new Point(  19460786.706068996, -5045166.324707857,app.spatialReference3857);
+                
+        app.map = new Map('map', {
+          basemap: 'streets',
+          spatialReference: app.spatialReference3857,
+          center: app.myHouse3857,
+          zoom: 4
+        });                
+                
+                app.aerial_tiled = new Tiled("http://emap-img.local.revera/til/rest/services/Standard/Aerial_CS/MapServer");
+                app.streetmap_tiled = new Tiled("http://emap-map.local.revera/til/rest/services/EMAP/BASE_STREETMAP_CACHE/MapServer");
+                //app.map.addLayer(app.aerial_tiled);  
+                
+                app.streetmap_dynamic = new ArcGISDynamicMapServiceLayer("http://emap-map.local.revera/til/rest/services/EMAP/BASE_STREETMAP_DYN/MapServer", {});
+                
+                app.edit_dyn_layer_url = 'http://emap1dev.local.terralink/til/rest/services/EMAP/BASE_EDITS/MapServer/2';
+                app.edit_dyn_layer = new ArcGISDynamicMapServiceLayer(app.edit_dyn_layer_url);
+
+                app.layerDef = "COMPANY_NCBID = 2";
+                app.outFields = ["TITLE","REFERENCE", "STYLE"];
+                app.currentAttribute = "STYLE";
+                
+                app.popupTemplate = new PopupTemplate({
+                    title: "{TITLE}",
+                    fieldInfos: [{
+                        "fieldName": app.currentAttribute,
+                        "label": app.outFields["TITLE"],
+                        "visible": true,
+                        "format": {
+                            places: 0,
+                            digitSeparator: true
+                        }
+                    }],
+                    showAttachments: true
+                });
+                
+                app.map.on("load", function(){
+                    //app.map.centerAndZoom(new Point(1752442.16, 5435019.16, new SpatialReference({
+                    //    wkid: 2193
+                    //})), 15);
+                                                           
+                    var defaultSymbol = new SimpleFillSymbol().setStyle(SimpleFillSymbol.STYLE_NULL);
+                    defaultSymbol.outline.setStyle(SimpleLineSymbol.STYLE_NULL);                                
+                    
+                    //create renderer
+                    app.renderer = new UniqueValueRenderer(defaultSymbol, "STYLE");                                           
+                    
+                    app.renderer.addValue("style1", new SimpleFillSymbol().setColor(new Color([255, 0, 0, 0.5])));
+                    app.renderer.addValue("style2", new SimpleFillSymbol().setColor(new Color([0, 255, 0, 0.5])));                                                          
+                    app.renderer.addValue("style3", new SimpleFillSymbol().setColor(new Color([0, 0, 255, 0.5])));                                                                              
+                    
+                    app.edit = new FeatureLayer(app.edit_dyn_layer_url, {
+                        "id": "Edit Poly",
+                        "infoTemplate": app.popupTemplate,
+                        //"maxAllowableOffset": maxOffset(),
+                        "mode": FeatureLayer.MODE_SNAPSHOT,
+                        "outFields": app.outFields,
+                        "opacity": 0.8
+                    });                                                           
+                    
+                    app.edit.setDefinitionExpression(app.layerDef);
+                    
+                    app.edit.setRenderer(app.renderer);                                       
+                    
+                    // show selected attribute on click
+                    app.mapClick = app.edit.on("click", function(evt){
+                        var name = evt.graphic.attributes.TITLE, ca = app.currentAttribute, content = app.outFields[ca];
+                        app.map.infoWindow.setTitle(name);
+                        app.map.infoWindow.setContent(content);
+                        // show info window at correct location based on the event's properties
+                        (evt) ? app.map.infoWindow.show(evt.screenPoint, app.map.getInfoWindowAnchor(evt.screenPoint)) : null;
+                    });                                  
+                    
+                    app.map.addLayer(app.edit);
+                    
+                    //createRenderer("STYLE");
+                })
+                
+                function createRenderer(field){
+                    app.sfs = new SimpleFillSymbol(SimpleFillSymbol.STYLE_SOLID, new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID, new Color([0, 0, 0]), 0.5), null);
+                    
+                    
+                    
+                    // limit the renderer to data being shown by the feature layer
+                    params.where = app.layerDef;
+                    var generateRenderer = new GenerateRendererTask(app.countiesUrl);
+                    generateRenderer.execute(params, applyRenderer, errorHandler);
+                }
+                
+                function applyRenderer(renderer){
+                    app.edit.setRenderer(renderer);
+                    app.edit.redraw();
+                    createLegend(app.map, app.edit);
+                }
+                
+                function updateAttribute(ch){
+                    app.map.infoWindow.hide();
+                    delete app.popupTemplate;
+                    app.popupTemplate = new PopupTemplate({
+                        title: "{TITLE}",
+                        fieldInfos: [{
+                            "fieldName": ch,
+                            "label": app.fields[ch],
+                            "visible": true,
+                            "format": {
+                                places: 0,
+                                digitSeparator: true
+                            }
+                        }],
+                        showAttachments: false
+                    });
+                    app.edit.setInfoTemplate(app.popupTemplate);
+                    app.currentAttribute = ch;
+                    createRenderer(ch);
+                    createLegend(app.map, app.edit);
+                }
+                
+                function createLegend(map, fl){
+                    // destroy previous legend, if present
+                    if (app.hasOwnProperty("legend")) {
+                        app.legend.destroy();
+                        domConstruct.destroy(dojo.byId("legendDiv"));
+                    }
+                    // create a new div for the legend
+                    var legendDiv = domConstruct.create("div", {
+                        id: "legendDiv"
+                    }, dom.byId("legendWrapper"));
+                    
+                    app.legend = new Legend({
+                        map: map,
+                        layerInfos: [{
+                            layer: fl,
+                            title: "Style Attribute: " + app.fields[app.currentAttribute]
+                        }]
+                    }, legendDiv);
+                    app.legend.startup();
+                }
+                
+            });
+        </script>
+    </head>
+    <body>
+        <div id="map" class="map">
+            <div id="BasemapToggle">
+            </div>
+            <div id="toolbar">
+                <button onclick="ShowLocation(app.graphic);">
+                    zoom to my house
+                </button>
+            </div>
+            <div id="legendWrapper">
+            </div>
+        </div>
+    </body>
+</html>
